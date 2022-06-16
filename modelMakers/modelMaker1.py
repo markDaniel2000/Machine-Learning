@@ -1,0 +1,77 @@
+# Imports needed
+import os
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+img_height = 150
+img_width = 150
+batch_size = 25 #number of classes
+
+model = keras.Sequential(
+    [
+        layers.Input((150, 150, 1)),
+        layers.Conv2D(16, 3, padding="same"),
+        layers.Conv2D(32, 3, padding="same"),
+        layers.MaxPooling2D(),
+        layers.Flatten(),
+        layers.Dense(10),
+    ]
+)
+ds_train = tf.keras.preprocessing.image_dataset_from_directory(
+    "flowers/Training",
+    labels="inferred",
+    label_mode="int",  # categorical, binary
+    # class_names=['0', '1', '2', '3', ...]
+    color_mode="grayscale",
+    batch_size=batch_size,
+    image_size=(img_height, img_width),  # reshape if not in this size
+    shuffle=True,
+    seed=123,
+    validation_split=0.1,
+    subset="training",
+)
+
+ds_validation = tf.keras.preprocessing.image_dataset_from_directory(
+    "flowers/Validation",
+    labels="inferred",
+    label_mode="int",  # categorical, binary
+    # class_names=['0', '1', '2', '3', ...]
+    color_mode="grayscale",
+    batch_size=batch_size,
+    image_size=(img_height, img_width),  # reshape if not in this size
+    shuffle=True,
+    seed=123,
+    validation_split=0.1,
+    subset="validation",
+)
+
+
+def augment(x, y):
+    image = tf.image.random_brightness(x, max_delta=0.05)
+    return image, y
+
+
+ds_train = ds_train.map(augment)
+
+# Custom Loops
+for epochs in range(10):
+    for x, y in ds_train:
+        # train here
+        pass
+
+
+model.compile(
+    optimizer=keras.optimizers.Adam(),
+    loss=[keras.losses.SparseCategoricalCrossentropy(from_logits=True),],
+    metrics=["accuracy"],
+)
+
+model.fit(ds_train, epochs=50, verbose=2)
+
+loss, accuracy_=model.evaluate(x,y)
+print("Accuracy is: ", accuracy_*100)
+model.save("flower.h5")
